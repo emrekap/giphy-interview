@@ -1,64 +1,92 @@
-import Head from 'next/head';
+import { formatQueryParams } from '../utils/url'
+import { SEARCH_V1_ENDPOINT } from '../consts'
+import { useRef, useState } from 'react';
+import GifImage from '../components/GifImage';
 import styles from '../styles/Home.module.css';
+import config from '../config';
 
 export default function Home() {
+  const [searchInput, setSearchInput] = useState('');
+  const [data, setData] = useState([]);
+  const searchTimeoutRef = useRef();
+  const [pagination, setPagination] = useState({
+    offset: 0,
+  });
+
+  const handleSearch =
+    async (input, offset) => {
+      try {
+        console.log('SEARCH_V1_ENDPOINT:', SEARCH_V1_ENDPOINT);
+        console.log("config:", config);
+        const queryParams = {
+          api_key: config.apiKey,
+          q: input || searchInput,
+          limit: 5,
+          offset
+        }
+
+        const endpoint = `${config.apiBaseUrl}${SEARCH_V1_ENDPOINT}${formatQueryParams(queryParams)}`
+        console.log(endpoint);
+        const result = await fetch(endpoint, {}).then((res) => res.json());
+
+        if (offset === 0) {
+          // user search input changed!
+          setData(result.data);
+        } else {
+          // same search input, next page
+          setData([...data, ...result.data]);
+        }
+        setPagination({ offset: result.pagination.offset })
+      } catch (error) {
+        console.log(error);
+      }
+
+    }
+
+
+  const handleSearchInputChange =
+    (e) => {
+      setSearchInput(e.target.value);
+      clearTimeout(searchTimeoutRef.current)
+      searchTimeoutRef.current = setTimeout(async () => {
+        await handleSearch(e.target.value, 0)
+      }, 1000);
+    }
+
+  const handleNextPage =
+    () => {
+      handleSearch(null, pagination.offset + 5)
+    }
+
+  const handleKeyPress =
+    (e) => {
+      if (e.key === 'Enter') {
+        clearTimeout(searchTimeoutRef.current)
+        handleSearch(e.target.value, 0)
+      }
+    }
+
+
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <div className={styles['input-container']}>
+        <input className={styles['search-input']} value={searchInput} onChange={handleSearchInputChange} onKeyDown={handleKeyPress} />
+      </div>
 
-      <main>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+      <div className={styles['grid-container']}>
+        {data.map(({ id, images, title }) =>
+          <div key={id} className={styles['grid-item ']}>
+            <GifImage id={id} image={images['downsized']} alt={title} />
+          </div>)
+        }
+      </div>
 
-        <p className={styles.description}>
-          Get started by editing <code>pages/index.js</code>
-        </p>
+      <div className={styles.grid}>
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
+      </div>
+      <button onClick={handleNextPage}>Next</button>
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
 
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel" className={styles.logo} />
-        </a>
-      </footer>
 
       <style jsx>{`
         main {
@@ -69,32 +97,7 @@ export default function Home() {
           justify-content: center;
           align-items: center;
         }
-        footer {
-          width: 100%;
-          height: 100px;
-          border-top: 1px solid #eaeaea;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-        footer img {
-          margin-left: 0.5rem;
-        }
-        footer a {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          text-decoration: none;
-          color: inherit;
-        }
-        code {
-          background: #fafafa;
-          border-radius: 5px;
-          padding: 0.75rem;
-          font-size: 1.1rem;
-          font-family: Menlo, Monaco, Lucida Console, Liberation Mono,
-            DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
-        }
+
       `}</style>
 
       <style jsx global>{`
