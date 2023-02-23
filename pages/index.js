@@ -16,8 +16,6 @@ export default function Home() {
   const handleSearch =
     async (input, offset) => {
       try {
-        console.log('SEARCH_V1_ENDPOINT:', SEARCH_V1_ENDPOINT);
-        console.log("config:", config);
         const queryParams = {
           api_key: config.apiKey,
           q: input || searchInput,
@@ -26,7 +24,6 @@ export default function Home() {
         }
 
         const endpoint = `${config.apiBaseUrl}${SEARCH_V1_ENDPOINT}${formatQueryParams(queryParams)}`
-        console.log(endpoint);
         const result = await fetch(endpoint, {}).then((res) => res.json());
 
         if (offset === 0) {
